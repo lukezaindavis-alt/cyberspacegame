@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cyber Space – Companion</title>
+<style>
+:root{--bg:#f2f3fb;--card:#fff;--tx:#14162b;--mut:#5b6080;--ac:#6d4aff;--bd:#d6d9ee;--ok:#12a36b;--bad:#e0405a;--tile:#e7e9f8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0c1d;--card:#151833;--tx:#eef0ff;--mut:#9aa0c8;--ac:#8b6bff;--bd:#2a2e56;--ok:#3ddc97;--bad:#ff6b85;--tile:#20244a}}
+:root[data-theme="dark"]{--bg:#0a0c1d;--card:#151833;--tx:#eef0ff;--mut:#9aa0c8;--ac:#8b6bff;--bd:#2a2e56;--ok:#3ddc97;--bad:#ff6b85;--tile:#20244a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:14px}
+h1{font-size:1.5rem;margin:6px 0 2px;letter-spacing:.04em}
+h2{font-size:1rem;margin:0 0 8px}
+.sub{color:var(--mut);margin:0 0 14px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 4px}
+input,select,textarea,button{font:inherit;color:var(--tx)}
+input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg)}
+textarea{min-height:90px;font-size:.85rem}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+button{border:0;border-radius:12px;padding:12px 14px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
+button.alt{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+button:disabled{opacity:.5}
+.menu button{width:100%;margin-bottom:10px;text-align:left}
+.opt{display:block;width:100%;text-align:left;margin-bottom:8px;background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.opt.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+.opt.no{background:var(--bad);color:#fff;border-color:var(--bad)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:600}
+.score{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)}
+.score:last-child{border:0}
+.score.cur{font-weight:700}
+.q{font-size:1.05rem;font-weight:600;margin:0 0 10px}
+.msg{padding:10px;border-radius:10px;background:var(--bg);margin:8px 0}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--mut);margin-top:6px}
+.code{font-size:2.6rem;font-weight:800;letter-spacing:.2em;text-align:center}
+svg{width:100%;height:auto;display:block}
+.small{font-size:.8rem;color:var(--mut)}
+</style></head><body><main id="app"></main>
+<script>
+const COLORS=["#ff4d6d","#22d3ee","#facc15","#4ade80","#c084fc","#fb923c"],N=24,TYPES=["boost","swap","bonus"],ICON={boost:"⚡",swap:"🔄",bonus:"🎁"};
+const tile=i=>({pts:1+Math.floor(i/6),p:i%4===2?TYPES[((i-2)/4)%3]:null});
+const BASE=[["Which element has the atomic number 79?",["Silver","Gold","Platinum","Mercury"],1],["In what year did the Berlin Wall fall?",["1987","1989","1991","1993"],1],["Which is the longest river in Europe?",["Danube","Rhine","Volga","Seine"],2],["Who painted “The Persistence of Memory”?",["Picasso","Dalí","Magritte","Miró"],1],["What is the smallest prime number greater than 50?",["51","53","57","59"],1],["What is the capital of Australia?",["Sydney","Melbourne","Canberra","Perth"],2],["Who wrote “One Hundred Years of Solitude”?",["Jorge Luis Borges","Gabriel García Márquez","Pablo Neruda","Isabel Allende"],1],["What is the chemical symbol for tungsten?",["W","Tu","Tn","Wo"],0],["Which empire did Suleiman the Magnificent rule?",["Ottoman","Persian","Mughal","Byzantine"],0],["How many bones are in the adult human body?",["186","206","226","246"],1],["About how fast does light travel in a vacuum?",["30,000 km/s","150,000 km/s","300,000 km/s","3,000,000 km/s"],2],["What is the second highest mountain in the world?",["K2","Kangchenjunga","Lhotse","Makalu"],0],["Who was the first woman to win a Nobel Prize?",["Marie Curie","Rosalind Franklin","Mother Teresa","Bertha von Suttner"],0],["What is the largest desert in the world by area?",["Sahara","Gobi","Antarctic","Arabian"],2],["Which language has the most native speakers?",["English","Mandarin Chinese","Spanish","Hindi"],1],["Which treaty formally ended World War I with Germany?",["Versailles","Paris","Vienna","Westphalia"],0]];
+let names=["Player 1","Player 2","Player 3"],cfg={mode:"time",mins:15,target:40,builtin:true,custom:""},G=null,R=null,QS=[],MODE="menu",room=null,rm=null,ME="",CODE="",tm=null,autoT=null,lastSig="";
+const $=s=>document.querySelector(s),esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+const left=()=>Math.max(0,Math.round((G.endAt-Date.now())/1000));
+const PJS="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
+const loadPeer=()=>new Promise((ok,no)=>{if(window.Peer)return ok();const s=document.createElement("script");s.src=PJS;s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+const makeCode=()=>Array.from({length:4},()=>"ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random()*23)]).join("");
+/* Tiny room layer on PeerJS (WebRTC). The host is the hub; players connect to it with the 4-letter code. */
+function mkRoom(code,host){return new Promise((ok,no)=>{
+const id="cyberspace-"+code,peer=host?new Peer(id):new Peer(),H={peers:[],st:[]},conns=new Map();let plist=[],pres={},link=null,done=false;
+const fire=c=>H.peers.forEach(f=>{try{f(c)}catch(e){}});
+const room={onclose:null,
+on(t,f){H.st.push(f)},onPeers(f){H.peers.push(f)},
+peers(){return host?[...conns.values()].map(e=>({presence:e.presence})):plist.map(n=>({presence:{role:"p",name:n}}))},
+presence(p){if(host)return;Object.assign(pres,p);if(link&&link.open)link.send({t:"pr",p})},
+emit(t,d){if(host)conns.forEach((e,c)=>{if(c.open)c.send({t:"st",data:d})})},
+leave(){try{peer.destroy()}catch(e){}}};
+const bl=()=>{const l=[...conns.values()].map(e=>e.presence).filter(p=>p.role==="p"&&p.name).map(p=>p.name);conns.forEach((e,c)=>{if(c.open)c.send({t:"pl",l})})};
+peer.on("error",e=>{if(!done){done=true;no(e)}});
+if(host){peer.on("open",()=>{done=true;ok(room)});
+peer.on("connection",c=>{const e={presence:{},joined:false};conns.set(c,e);
+c.on("data",d=>{if(!d||d.t!=="pr"||typeof d.p!=="object")return;Object.assign(e.presence,d.p);const j=!e.joined&&e.presence.role==="p";
+if(j){e.joined=true;conns.forEach((x,k)=>{if(k!==c&&x.presence.name===e.presence.name){conns.delete(k);try{k.close()}catch(_){}}})}
+fire({joined:j?[e]:[]});bl()});
+c.on("close",()=>{conns.delete(c);fire({joined:[]});bl()})})}
+else{peer.on("open",()=>{link=peer.connect(id,{serialization:"json",reliable:true});
+link.on("open",()=>{done=true;ok(room)});
+link.on("data",d=>{if(!d)return;if(d.t==="st")H.st.forEach(f=>f({data:d.data}));else if(d.t==="pl"){plist=Array.isArray(d.l)?d.l:[];fire({joined:[]})}});
+link.on("close",()=>{if(room.onclose)room.onclose()});
+setTimeout(()=>{if(!done){done=true;no(new Error("timeout"))}},9000)})}
+})}
+function parseQs(t){return t.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const c=l.split(l.includes("|")?"|":l.includes("\t")?"\t":",").map(s=>s.trim());if(c.length<6)return null;const n=parseInt(c[c.length>=7?6:5],10);return n>=1&&n<=4?[c[0],c.slice(1,5),n-1]:null}).filter(Boolean)}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function leave(){clearInterval(tm);clearTimeout(autoT);G=null;R=null;lastSig="";if(room){room.onclose=null;room.leave();room=null}}
+function menu(){MODE="menu";leave();$("#app").innerHTML=`<h1>🚀 CYBER SPACE</h1><p class="sub">Trivia board game companion.</p><div class="menu">
+<button onclick="hostSetup()">📺 Host a game<br><span class="small" style="color:inherit;opacity:.85">Show the board; everyone plays from their own phone</span></button>
+<button onclick="joinScreen()">📱 Join a game<br><span class="small" style="color:inherit;opacity:.85">Enter the host’s 4-letter code</span></button>
+<button class="alt" onclick="localSetup()">👥 One device, pass and play</button></div>
+<p class="small">Hosting and joining need an internet connection. Everyone opens this same page; no accounts needed. Pass and play works offline.</p>`}
+function localSetup(){leave();MODE="local";setup()}
+async function hostSetup(){leave();MODE="host";CODE=Array.from({length:4},()=>"ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random()*23)]).join("");
+try{await loadPeer();for(let k=0;k<4&&!room;k++){CODE=makeCode();try{room=await mkRoom(CODE,true)}catch(e){if(!e||e.type!=="unavailable-id")throw e}}if(!room)throw 0}catch(e){alert("Couldn’t reach the connection service. Check your internet and try again.");menu();return}
+room.onPeers(c=>{lobby();if(G&&c.joined.length)room.emit("st",pub());act()});room.presence({role:"h"});setup()}
+function lobbyNames(){return room?room.peers().filter(p=>p.presence.role==="p"&&p.presence.name).map(p=>String(p.presence.name).slice(0,14)):[]}
+function lobby(){const e=$("#lobby");if(!e)return;const n=lobbyNames();e.innerHTML=n.length?n.map((x,i)=>`<div class="score"><span><span class="dot" style="background:${COLORS[i%6]}"></span>${esc(x)}</span></div>`).join(""):`<p class="small">Waiting for players to join…</p>`}
+function keep(){if($("#mins"))cfg.mins=+$("#mins").value||15;if($("#target"))cfg.target=+$("#target").value||40;if($("#bi"))cfg.builtin=$("#bi").checked;if($("#cu"))cfg.custom=$("#cu").value}
+function setup(){const h=MODE==="host";
+$("#app").innerHTML=`<button class="alt" onclick="menu()" style="margin-bottom:8px">← Back</button><h1>🚀 CYBER SPACE</h1>
+${h?`<div class="card"><div class="small" style="text-align:center">Players: open this page, tap Join, and enter</div><div class="code">${CODE}</div></div>`:""}
+<div class="card"><h2>Players${h?" (2–6)":""}</h2>${h?`<div id="lobby"></div>`:names.map((n,i)=>`<div class="row" style="margin-bottom:6px"><span class="dot" style="flex:0 0 12px;background:${COLORS[i]}"></span><input value="${esc(n)}" data-i="${i}" class="nm" maxlength="14"></div>`).join("")+`<div class="row"><button class="alt" onclick="keep();names.push('Player '+(names.length+1));setup()" ${names.length>=6?"disabled":""}>+ Add</button><button class="alt" onclick="keep();names.pop();setup()" ${names.length<=2?"disabled":""}>− Remove</button></div>`}</div>
+<div class="card"><h2>Game length</h2><select onchange="keep();cfg.mode=this.value;setup()"><option value="time" ${cfg.mode==="time"?"selected":""}>Timer</option><option value="points" ${cfg.mode==="points"?"selected":""}>Point target</option></select>
+${cfg.mode==="time"?`<label>Minutes (5 or more)</label><input id="mins" type="number" min="5" max="180" value="${cfg.mins}">`:`<label>First to this many points</label><input id="target" type="number" min="10" max="500" value="${cfg.target}">`}</div>
+<div class="card"><h2>Questions</h2><label><input type="checkbox" id="bi" style="width:auto" ${cfg.builtin?"checked":""}> Include built-in questions</label>
+<label>Add your own, one per line: Question | A | B | C | D | correct number (1-4)</label><textarea id="cu" placeholder="Capital of Japan? | Seoul | Tokyo | Kyoto | Osaka | 2">${esc(cfg.custom)}</textarea>
+<p class="small">Kahoot tip: export your quiz to a spreadsheet, then paste the rows here. Kahoot’s question library can’t be pulled in automatically.</p></div>
+<button style="width:100%" onclick="start()">Start game</button>`;
+document.querySelectorAll(".nm").forEach(e=>e.oninput=()=>names[+e.dataset.i]=e.value);if(h)lobby()}
+function start(re){let ns;if(re){ns=G.players.map(p=>p.name)}else{keep();QS=(cfg.builtin?BASE:[]).concat(parseQs(cfg.custom));
+if(!QS.length){alert("Add at least one question.");return}
+ns=MODE==="host"?lobbyNames().slice(0,6):names.map((n,i)=>n.trim()||"Player "+(i+1));
+if(MODE==="host"&&ns.length<2){alert("At least 2 players need to join first.");return}
+const seen={};ns=ns.map(n=>{let m=n,k=2;while(seen[m])m=n+" "+k++;seen[m]=1;return m})}
+clearInterval(tm);clearTimeout(autoT);
+G={players:ns.map((n,i)=>({name:n,color:COLORS[i%6],pos:0,score:0,boost:false})),turn:0,deck:shuffle(QS),qi:0,phase:"roll",msg:"",die:0,q:null,ci:-1,picked:-1,sk:Math.floor(Math.random()*1e6),over:false,tl:0,mode:cfg.mode,target:cfg.target,endAt:cfg.mode==="time"?Date.now()+Math.max(5,cfg.mins)*60000:0};
+tm=setInterval(tick,1000);push()}
+const rematch=()=>start(true);
+function pub(){const g=Object.assign({},G);delete g.deck;g.q=G.q?{t:G.q.t.slice(0,160),o:G.q.o.map(x=>x.slice(0,50))}:null;if(G.phase==="question")g.ci=-1;return g}
+function push(){G.tl=G.mode==="time"?left():0;if(MODE==="host"&&room)room.emit("st",pub());render(G)}
+function tick(){if(!G)return;if(G.over){if(MODE==="host"&&room)room.emit("st",pub());return}
+G.tl=G.mode==="time"?left():0;if(G.mode==="time"&&G.tl===0&&G.phase==="roll"){finish();return}
+clock(G);if(MODE==="host"&&room)room.emit("st",pub())}
+function clock(S){const e=$("#clock");if(e)e.textContent=S.mode==="time"?"⏱ "+fmt(S.tl):"🎯 First to "+S.target}
+function nextQ(){if(G.qi>=G.deck.length){G.deck=shuffle(QS);G.qi=0}return G.deck[G.qi++]}
+function sched(ms,f){clearTimeout(autoT);if(MODE==="host")autoT=setTimeout(f,ms)}
+function roll(){G.die=1+Math.floor(Math.random()*6);const it=nextQ();G.q={t:it[0],o:it[1]};G.ci=it[2];G.picked=-1;G.phase="question";G.sk++;push()}
+function answer(i){const p=G.players[G.turn];G.picked=i;
+if(i===G.ci){p.pos=(p.pos+G.die)%N;const t=tile(p.pos),g=t.pts*(p.boost?2:1),b=p.boost;p.boost=false;p.score+=g;
+G.msg=`Correct! Moved ${G.die} → +${g} pts${b?" (⚡ doubled)":""}.`;
+if(t.p==="boost"){p.boost=true;G.msg+=" ⚡ Next points are doubled!"}
+if(t.p==="bonus"){p.score+=5;G.msg+=" 🎁 Bonus +5!"}
+if(t.p==="swap"&&G.players.length>1){G.phase="swap";G.sk++;push();sched(20000,swapSkip);return}}
+else G.msg=`Not quite. The answer was “${G.q.o[G.ci]}”. No move.`;
+G.phase="result";G.sk++;push();sched(5000,next)}
+function swap(j){const p=G.players[G.turn],o=G.players[j];[p.score,o.score]=[o.score,p.score];G.msg+=` 🔄 Swapped scores with ${o.name}.`;G.phase="result";G.sk++;push();sched(5000,next)}
+function swapSkip(){G.phase="result";G.sk++;push();sched(4000,next)}
+function next(){clearTimeout(autoT);if((G.mode==="points"&&G.players.some(p=>p.score>=G.target))||(G.mode==="time"&&left()===0)){finish();return}
+G.turn=(G.turn+1)%G.players.length;G.phase="roll";G.msg="";G.q=null;G.die=0;G.picked=-1;G.sk++;push()}
+function finish(){clearTimeout(autoT);G.over=true;G.sk++;if(MODE==="host"&&room)room.emit("st",pub());render(G)}
+function act(){if(MODE!=="host"||!G||G.over)return;const cur=G.players[G.turn],pr=room.peers().find(p=>p.presence.role==="p"&&String(p.presence.name).slice(0,14)===cur.name);if(!pr)return;const a=pr.presence;
+if(G.phase==="roll"&&a.roll===G.sk)roll();
+else if(G.phase==="question"&&a.ans&&a.ans.k===G.sk&&Number.isInteger(a.ans.i)&&a.ans.i>=0&&a.ans.i<4)answer(a.ans.i);
+else if(G.phase==="swap"&&a.sw&&a.sw.k===G.sk){const j=a.sw.j;if(j===-1)swapSkip();else if(Number.isInteger(j)&&j>=0&&j<G.players.length&&j!==G.turn)swap(j)}}
+function joinScreen(){leave();MODE="player";$("#app").innerHTML=`<button class="alt" onclick="menu()" style="margin-bottom:8px">← Back</button><h1>📱 Join a game</h1><div class="card"><label>Join code</label><input id="jc" maxlength="4" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.3em;font-size:1.4rem"><label>Your name</label><input id="jn" maxlength="14" value="${esc(ME)}"></div><button style="width:100%" onclick="doJoin()">Join</button>`}
+async function doJoin(){const c=$("#jc").value.trim().toLowerCase().replace(/[^a-z0-9]/g,""),n=$("#jn").value.trim();if(c.length<4||!n){alert("Enter the 4-letter code and your name.");return}
+ME=n.slice(0,14);try{await loadPeer();room=await mkRoom(c.toUpperCase(),false)}catch(e){alert("Couldn’t join. Check the code and your internet, and make sure the host has opened the game.");return}
+room.presence({role:"p",name:ME});room.onclose=()=>{if(MODE==="player"){alert("The host disconnected.");menu()}};
+room.on("st",m=>{const s=m.data;if(!s||!Array.isArray(s.players))return;R=s;const sig=JSON.stringify(Object.assign({},s,{tl:0}));if(sig!==lastSig){lastSig=sig;render(R)}else clock(R)});
+room.onPeers(()=>{if(!R)wait()});wait()}
+function wait(){const n=room?room.peers().filter(p=>p.presence.role==="p"&&p.presence.name):[];$("#app").innerHTML=`<h1>📱 You’re in, ${esc(ME)}!</h1><div class="card"><h2>Waiting for the host to start…</h2>${n.map(p=>`<div class="score"><span>${esc(p.presence.name)}${p.presence.name===ME?" (you)":""}</span></div>`).join("")}</div>`}
+const doRoll=()=>MODE==="player"?room.presence({roll:R.sk}):roll();
+const doAns=i=>MODE==="player"?room.presence({ans:{k:R.sk,i}}):answer(i);
+const doSwap=j=>MODE==="player"?room.presence({sw:{k:R.sk,j}}):(j<0?swapSkip():swap(j));
+function board(S){const c=200,r=150;let s=`<svg viewBox="0 0 400 400" role="img" aria-label="Game board"><circle cx="200" cy="200" r="150" fill="none" stroke="var(--bd)" stroke-width="2"/>`;
+const pos=i=>{const a=-Math.PI/2+i*2*Math.PI/N;return[c+r*Math.cos(a),c+r*Math.sin(a),a]};
+for(let i=0;i<N;i++){const[x,y,a]=pos(i),t=tile(i),f=t.p?{boost:"#facc15",swap:"#22d3ee",bonus:"#4ade80"}[t.p]:"var(--tile)";
+s+=`<circle cx="${x}" cy="${y}" r="19" fill="${f}" stroke="var(--bd)"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="${t.p?"#14162b":"var(--tx)"}">${i===0?"GO":t.pts}</text>`;
+if(t.p)s+=`<text x="${c+(r+34)*Math.cos(a)}" y="${c+(r+34)*Math.sin(a)+5}" text-anchor="middle" font-size="14">${ICON[t.p]}</text>`}
+S.players.forEach((p,k)=>{const[x,y]=pos(p.pos),dx=(k%3-1)*9,dy=Math.floor(k/3)*9-13;s+=`<circle cx="${x+dx}" cy="${y+dy+14}" r="6" fill="${p.color}" stroke="${k===S.turn?"var(--tx)":"#000"}" stroke-width="${k===S.turn?2.5:1}"/>`});
+return s+`<text x="200" y="190" text-anchor="middle" font-size="16" font-weight="700" fill="var(--tx)">CYBER SPACE</text><text x="200" y="225" text-anchor="middle" font-size="34" fill="var(--tx)">${S.die?"🎲 "+S.die:"🎲"}</text></svg>`}
+function overScreen(S){const r=S.players.slice().sort((a,b)=>b.score-a.score),top=r.filter(p=>p.score===r[0].score);
+$("#app").innerHTML=`<h1>🏆 Game over</h1><div class="card"><h2>${top.length>1?"Tie: "+top.map(p=>esc(p.name)).join(" & "):esc(top[0].name)+" wins!"}</h2>${r.map(p=>`<div class="score"><span><span class="dot" style="background:${p.color}"></span>${esc(p.name)}${p.name===ME&&MODE==="player"?" (you)":""}</span><span>${p.score} pts</span></div>`).join("")}</div>${MODE==="player"?`<p class="small">Waiting for the host to start a rematch…</p>`:`<div class="row"><button onclick="rematch()">Rematch</button><button class="alt" onclick="menu()">Exit</button></div>`}`}
+function render(S){if(S.over)return overScreen(S);
+const P=S.players,p=P[S.turn],me=MODE==="local"||(MODE==="player"&&p.name===ME),ph=S.phase;let act="";
+if(ph==="roll")act=me?`<p><b>${esc(p.name)}</b>, it’s your turn!</p><button style="width:100%" onclick="doRoll()">🎲 Roll</button>`:`<p>Waiting for <b>${esc(p.name)}</b> to roll…</p>`;
+else if(ph==="question")act=`<p class="small">Rolled a ${S.die}. Answer correctly to move ${S.die} space${S.die>1?"s":""}.</p><p class="q">${esc(S.q.t)}</p>${S.q.o.map((o,i)=>me?`<button class="opt" onclick="doAns(${i})">${"ABCD"[i]}. ${esc(o)}</button>`:`<div class="opt" style="padding:12px 14px;border-radius:12px">${"ABCD"[i]}. ${esc(o)}</div>`).join("")}${me?"":`<p class="small">${esc(p.name)} is answering…</p>`}`;
+else if(ph==="swap")act=`<div class="msg">${esc(S.msg)}</div>`+(me?`<p><b>🔄 Swap!</b> Pick a player to trade scores with:</p><div class="row" style="flex-wrap:wrap">${P.map((o,j)=>j===S.turn?"":`<button onclick="doSwap(${j})">${esc(o.name)} (${o.score})</button>`).join("")}<button class="alt" onclick="doSwap(-1)">Skip</button></div>`:`<p>${esc(p.name)} is choosing who to swap with…</p>`);
+else act=(S.q?S.q.o.map((o,i)=>`<div class="opt ${i===S.ci?"ok":i===S.picked?"no":""}" style="padding:10px 14px;border-radius:12px">${"ABCD"[i]}. ${esc(o)}</div>`).join(""):"")+`<div class="msg">${esc(S.msg)}</div>`+(MODE==="player"?"":`<button style="width:100%" onclick="next()">Next player →</button>`);
+$("#app").innerHTML=`<div class="top"><span id="clock"></span><span><span class="dot" style="background:${p.color}"></span>${esc(p.name)}${p.boost?" ⚡":""}</span></div>
+<div class="card">${board(S)}<div class="leg"><span>Number = points on tile (rises each quarter)</span><span>⚡ double next</span><span>🔄 swap scores</span><span>🎁 +5</span></div></div>
+<div class="card">${act}</div>
+<div class="card"><h2>Scores</h2>${P.map((q,i)=>`<div class="score ${i===S.turn?"cur":""}"><span><span class="dot" style="background:${q.color}"></span>${esc(q.name)}${q.boost?" ⚡":""}${MODE==="player"&&q.name===ME?" (you)":""}</span><span>${q.score}</span></div>`).join("")}</div>
+${MODE==="player"?"":`<button class="alt" style="width:100%" onclick="if(confirm('End the game now?'))finish()">End game</button>`}`;clock(S)}
+menu();
+</script></body></html>
